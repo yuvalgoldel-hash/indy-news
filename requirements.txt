@@ -4,3 +4,4 @@ trafilatura
 anthropic
 requests
 python-dotenv
+gunicorn
