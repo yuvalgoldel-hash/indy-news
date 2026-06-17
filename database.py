@@ -73,11 +73,20 @@ def save_article(title, url, source, published, full_text="", real_url=""):
         conn.close()
 
 
+def row_to_dict(row):
+    if row is None:
+        return None
+    d = dict(row)
+    if "fetched_at" in d and d["fetched_at"] is not None and not isinstance(d["fetched_at"], str):
+        d["fetched_at"] = d["fetched_at"].strftime("%Y-%m-%d %H:%M:%S")
+    return d
+
+
 def get_unanalyzed():
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("SELECT * FROM articles WHERE analyzed=0 ORDER BY fetched_at DESC LIMIT 20")
-    rows = cur.fetchall()
+    rows = [row_to_dict(r) for r in cur.fetchall()]
     cur.close()
     conn.close()
     return rows
@@ -123,6 +132,7 @@ def get_articles_by_category(limit=200):
     all_by_date = defaultdict(list)
 
     for row in rows:
+        row = row_to_dict(row)
         cat = row["category"] or "General"
         label = date_label(row["fetched_at"])
         grouped[cat][label].append(row)
@@ -167,7 +177,7 @@ def get_all_articles_sorted(limit=100):
             fetched_at DESC
         LIMIT %s
     """, (limit,))
-    rows = cur.fetchall()
+    rows = [row_to_dict(r) for r in cur.fetchall()]
     cur.close()
     conn.close()
     return rows
@@ -177,7 +187,7 @@ def get_all_articles(limit=100):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("SELECT * FROM articles ORDER BY fetched_at DESC LIMIT %s", (limit,))
-    rows = cur.fetchall()
+    rows = [row_to_dict(r) for r in cur.fetchall()]
     cur.close()
     conn.close()
     return rows
@@ -187,7 +197,7 @@ def get_article(article_id):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("SELECT * FROM articles WHERE id=%s", (article_id,))
-    row = cur.fetchone()
+    row = row_to_dict(cur.fetchone())
     cur.close()
     conn.close()
     return row
