@@ -10,6 +10,9 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# Create DB tables on startup
+init_db()
+
 # Make neighborhoods available in all templates
 @app.context_processor
 def inject_globals():
