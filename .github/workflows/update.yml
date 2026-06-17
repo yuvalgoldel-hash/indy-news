@@ -22,5 +22,5 @@ jobs:
       - name: Run update
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python run_update.py

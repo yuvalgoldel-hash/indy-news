@@ -1,27 +1,28 @@
-import sqlite3
 import os
+import psycopg2
+import psycopg2.extras
+from datetime import datetime, timezone, timedelta
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "indy_news.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    url = DATABASE_URL
+    if not url:
+        raise RuntimeError("DATABASE_URL is not set")
+    # Render gives postgres:// but psycopg2 needs postgresql://
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    conn = psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
     return conn
-
-
-def cleanup_old_articles():
-    conn = get_conn()
-    conn.execute("DELETE FROM articles WHERE fetched_at < datetime('now', '-7 days', '-4 hours')")
-    conn.commit()
-    conn.close()
 
 
 def init_db():
     conn = get_conn()
-    conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS articles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             title TEXT NOT NULL,
             url TEXT UNIQUE NOT NULL,
             real_url TEXT,
@@ -32,69 +33,86 @@ def init_db():
             light TEXT DEFAULT 'green',
             relevance_score INTEGER DEFAULT 0,
             category TEXT DEFAULT 'General',
-            fetched_at TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', '-4 hours')),
-            analyzed INTEGER DEFAULT 0
+            fetched_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'America/New_York'),
+            analyzed INTEGER DEFAULT 0,
+            is_read INTEGER DEFAULT 0
         )
     """)
-    # Add category column if upgrading existing DB
-    try:
-        conn.execute("ALTER TABLE articles ADD COLUMN category TEXT DEFAULT 'General'")
-        conn.commit()
-    except Exception:
-        pass
     conn.commit()
+    cur.close()
+    conn.close()
+
+
+def cleanup_old_articles():
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM articles WHERE fetched_at < NOW() - INTERVAL '7 days'")
+    conn.commit()
+    cur.close()
     conn.close()
 
 
 def save_article(title, url, source, published, full_text="", real_url=""):
     conn = get_conn()
+    cur = conn.cursor()
     try:
-        conn.execute(
-            "INSERT OR IGNORE INTO articles (title, url, real_url, source, published, full_text) VALUES (?,?,?,?,?,?)",
+        cur.execute(
+            """INSERT INTO articles (title, url, real_url, source, published, full_text)
+               VALUES (%s, %s, %s, %s, %s, %s)
+               ON CONFLICT (url) DO NOTHING""",
             (title, url, real_url or url, source, published, full_text)
         )
+        saved = cur.rowcount > 0
         conn.commit()
-        return True
+        return saved
     except Exception:
+        conn.rollback()
         return False
     finally:
+        cur.close()
         conn.close()
 
 
 def get_unanalyzed():
     conn = get_conn()
-    rows = conn.execute(
-        "SELECT * FROM articles WHERE analyzed=0 ORDER BY fetched_at DESC LIMIT 20"
-    ).fetchall()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM articles WHERE analyzed=0 ORDER BY fetched_at DESC LIMIT 20")
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
     return rows
 
 
 def get_articles_by_category(limit=200):
     conn = get_conn()
-    rows = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
         SELECT * FROM articles WHERE analyzed=1
         ORDER BY fetched_at DESC
-        LIMIT ?
-    """, (limit,)).fetchall()
+        LIMIT %s
+    """, (limit,))
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
 
     from collections import defaultdict
-    from datetime import datetime, date
+    from datetime import date
 
     today = date.today()
 
     def date_label(fetched_at):
         try:
-            d = datetime.strptime(fetched_at[:10], "%Y-%m-%d").date()
+            if isinstance(fetched_at, str):
+                d = datetime.strptime(fetched_at[:10], "%Y-%m-%d").date()
+            else:
+                d = fetched_at.date()
             diff = (today - d).days
-            if diff == 0: return "Today"
-            return d.strftime("%b %d")  # Jun 17, Jun 16...
+            if diff == 0:
+                return "Today"
+            return d.strftime("%b %d")
         except Exception:
-            return fetched_at[:10]
+            return str(fetched_at)[:10]
 
-    # Group by category → date → articles
-    # Structure: { category: { date_label: [articles] } }
     CAT_ORDER = [
         "Fix & Flip", "Rental Market", "Development & Construction",
         "Jobs & Companies", "Interest Rates & Fed", "Mortgages",
@@ -110,19 +128,15 @@ def get_articles_by_category(limit=200):
         grouped[cat][label].append(row)
         all_by_date[label].append(row)
 
-    # Sort each date group by signal
     def sort_articles(arts):
         order = {"red": 0, "yellow": 1, "green": 2}
         return sorted(arts, key=lambda a: (order.get(a["light"], 2), -(a["relevance_score"] or 0)))
 
     result = {}
-    # Add "All" first
     result["All Stories"] = {k: sort_articles(v) for k, v in all_by_date.items()}
-    # Then categories in preferred order
     for cat in CAT_ORDER:
         if cat in grouped:
             result[cat] = {k: sort_articles(v) for k, v in grouped[cat].items()}
-    # Any extra categories
     for cat in grouped:
         if cat not in result:
             result[cat] = {k: sort_articles(v) for k, v in grouped[cat].items()}
@@ -132,39 +146,48 @@ def get_articles_by_category(limit=200):
 
 def update_analysis(article_id, summary_he, light, relevance_score, category="General"):
     conn = get_conn()
-    conn.execute(
-        "UPDATE articles SET summary_he=?, light=?, relevance_score=?, category=?, analyzed=1 WHERE id=?",
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE articles SET summary_he=%s, light=%s, relevance_score=%s, category=%s, analyzed=1 WHERE id=%s",
         (summary_he, light, relevance_score, category, article_id)
     )
     conn.commit()
+    cur.close()
     conn.close()
 
 
 def get_all_articles_sorted(limit=100):
     conn = get_conn()
-    rows = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
         SELECT * FROM articles
         ORDER BY
             CASE light WHEN 'red' THEN 1 WHEN 'yellow' THEN 2 ELSE 3 END,
             relevance_score DESC,
             fetched_at DESC
-        LIMIT ?
-    """, (limit,)).fetchall()
+        LIMIT %s
+    """, (limit,))
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
     return rows
 
 
 def get_all_articles(limit=100):
     conn = get_conn()
-    rows = conn.execute(
-        "SELECT * FROM articles ORDER BY fetched_at DESC LIMIT ?", (limit,)
-    ).fetchall()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM articles ORDER BY fetched_at DESC LIMIT %s", (limit,))
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
     return rows
 
 
 def get_article(article_id):
     conn = get_conn()
-    row = conn.execute("SELECT * FROM articles WHERE id=?", (article_id,)).fetchone()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM articles WHERE id=%s", (article_id,))
+    row = cur.fetchone()
+    cur.close()
     conn.close()
     return row
