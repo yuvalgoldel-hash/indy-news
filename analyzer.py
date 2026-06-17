@@ -35,16 +35,18 @@ red = important, direct opportunity or risk, act now
 yellow = developing trend, track it
 green = general info, indirect relevance
 
-CATEGORY must be exactly one of these English values:
-Interest Rates & Fed
-Mortgages
-Development & Construction
-Jobs & Companies
-Population & Growth
-Market Prices & Stats
-Rental Market
-Fix & Flip
-General
+CATEGORY must be exactly one of these English values — choose the MOST specific one:
+- Mortgages → any article about mortgage rates, home loans, refinancing, lending, 30-year fixed, ARM
+- Interest Rates & Fed → Federal Reserve decisions, Fed rate, treasury yields, inflation/CPI (not mortgage-specific)
+- Development & Construction → new construction, permits, builders, zoning, development projects
+- Jobs & Companies → hiring, layoffs, companies expanding/closing, employment data
+- Population & Growth → migration, population trends, demographics, city growth
+- Market Prices & Stats → home prices, median price, days on market, inventory, MLS data
+- Rental Market → rents, rental demand, landlord/tenant, multifamily, BTR
+- Fix & Flip → flipping, wholesale, distressed properties, ARV, rehab
+- General → only if NONE of the above apply
+
+NEVER use General if the article fits any other category.
 
 If not related to real estate, Indianapolis, economy, rates, or employment:
 LIGHT: green
