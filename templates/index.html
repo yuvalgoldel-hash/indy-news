@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Indy Intel">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<title>Indy Intel — Indianapolis Real Estate Intelligence</title>
+<link rel="stylesheet" href="/static/brand.css?v=1">
+<style>
+html, body { height: 100%; overflow-x: hidden; }
+
+/* ── TICKER ── */
+.ticker {
+  background: var(--navy2);
+  height: 40px;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.ticker-badge {
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.ticker-badge-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: livepulse 1.2s infinite; }
+.ticker-track { flex: 1; overflow: hidden; position: relative; }
+.ticker-inner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  white-space: nowrap;
+  animation: tickscroll 55s linear infinite;
+}
+.ticker-inner:hover { animation-play-state: paused; }
+@keyframes tickscroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.t-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 28px;
+  text-decoration: none;
+  color: #94a3b8;
+  font-size: 12.5px;
+  font-weight: 500;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  height: 100%;
+  transition: color 0.2s;
+}
+.t-item:hover { color: var(--gold); }
+.t-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.t-dot.red    { background: #ef4444; }
+.t-dot.yellow { background: #f59e0b; }
+.t-dot.green  { background: #10b981; }
+.t-src { font-size: 9px; font-weight: 800; color: #475569; background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 3px; letter-spacing: 0.3px; }
+
+/* ── PAGE LAYOUT ── */
+.page {
+  display: flex;
+  min-height: calc(100vh - 102px);
+}
+
+/* ── LEFT SIDEBAR ── */
+.left-col {
+  width: 210px;
+  flex-shrink: 0;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  padding: 20px 0;
+}
+.col-title {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--light);
+  padding: 6px 20px 10px;
+}
+.src-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  text-decoration: none;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 500;
+  border-right: 3px solid transparent;
+  transition: all 0.15s;
+}
+.src-item:hover { background: #f8fafc; color: var(--navy); border-right-color: var(--gold); }
+.src-img { width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0; }
+.src-arrow { margin-right: auto; font-size: 10px; color: #cbd5e1; }
+
+/* ── CENTER ── */
+.center-col {
+  flex: 1;
+  padding: 28px 24px;
+  overflow-y: auto;
+}
+.col-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.col-head-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--light);
+}
+.col-head-line { flex: 1; height: 1px; background: var(--border); }
+
+/* ── GRID ── */
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.cat-tile {
+  background: var(--white);
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  transition: all 0.22s;
+  min-height: 200px;
+}
+.cat-tile:hover {
+  box-shadow: 0 8px 28px rgba(15,28,46,0.13);
+  transform: translateY(-3px);
+  border-color: var(--gold);
+}
+
+.tile-cap {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.tile-cap-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: 17px;
+  color: #fff;
+  letter-spacing: 0.1px;
+}
+.tile-cap-count {
+  font-size: 11px; font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  background: rgba(0,0,0,0.18);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.tile-body {
+  flex: 1;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.day-rows { flex: 1; display: flex; flex-direction: column; }
+.day-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+.day-row:last-child { border-bottom: none; }
+.day-name { font-weight: 700; color: #334155; min-width: 76px; }
+.day-count { font-size: 12px; font-weight: 700; color: var(--light); min-width: 18px; }
+.day-dots { display: flex; gap: 4px; }
+.dd { width: 9px; height: 9px; border-radius: 50%; }
+.dd.red    { background: #ef4444; }
+.dd.yellow { background: #f59e0b; }
+.dd.green  { background: #e2e8f0; }
+
+.tile-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+.tile-sigs { display: flex; gap: 6px; }
+.sig { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 4px; }
+.sig.red    { background: #fef2f2; color: #dc2626; }
+.sig.yellow { background: #fffbeb; color: #b45309; }
+.tile-cta { font-size: 11px; font-weight: 700; color: var(--gold); letter-spacing: 0.2px; }
+
+/* ── RIGHT SIDEBAR ── */
+.right-col {
+  width: 250px;
+  flex-shrink: 0;
+  background: var(--white);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 20px 0;
+}
+.heat-wrap { padding: 0 18px 20px; }
+.stat-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; border-bottom: 1px solid #f8fafc; font-size: 12px;
+}
+.stat-row:last-child { border: none; }
+.stat-label { color: var(--muted); }
+.stat-val { font-weight: 800; color: var(--text); }
+.stat-val.up { color: var(--red); }
+.stat-val.dn { color: var(--green); }
+.heat-note {
+  font-size: 11px; color: var(--light); line-height: 1.7;
+  background: #f8fafc; border-radius: 6px; padding: 10px 12px; margin-top: 14px;
+  border: 1px solid var(--border);
+}
+.heat-badge {
+  display: inline-block;
+  font-size: 12px; font-weight: 700;
+  color: var(--red); background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 5px 14px; border-radius: 6px;
+  margin-bottom: 16px; text-align: center; width: 100%;
+}
+.heat-divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* ── HAMBURGER ── */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+.hamburger-btn span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #94a3b8;
+  border-radius: 2px;
+}
+.sources-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 500;
+}
+.sources-overlay.open { display: block; }
+.sources-drawer {
+  position: fixed;
+  top: 0;
+  right: -280px;
+  width: 260px;
+  height: 100vh;
+  background: var(--white);
+  z-index: 501;
+  padding: 20px 0;
+  transition: right 0.3s ease;
+  overflow-y: auto;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+}
+.sources-drawer.open { right: 0; }
+.sources-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+
+  /* Header */
+  .site-header {
+    padding: 10px 14px;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand-name { font-size: 17px; }
+  .brand-sub { font-size: 8px; }
+  .header-date { display: none; }
+  .live-pill {
+    font-size: 10px;
+    padding: 4px 10px;
+    background: rgba(34,197,94,0.1);
+    border-color: #22c55e;
+    color: #22c55e;
+    font-weight: 700;
+  }
+  .hamburger-btn { display: flex; }
+
+  /* Ticker */
+  .ticker { font-size: 11px; }
+
+  /* Page layout: stack vertically, hide sidebar */
+  .page { flex-direction: column; }
+  .left-col { display: none; }
+
+  /* Center col */
+  .center-col { padding: 16px 12px; }
+  .col-head { margin-bottom: 14px; }
+  .col-head-title { font-size: 10px; }
+
+  /* Grid: 1 column */
+  .cat-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Tiles */
+  .cat-tile { min-height: 130px; }
+  .tile-cap-name { font-size: 15px; }
+  .tile-body { padding: 10px 14px; }
+  .day-row { font-size: 11px; }
+
+  /* Right col (Market Heat): full width below */
+  .right-col {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding: 16px 14px;
+  }
+  .heat-wrap { max-width: 100%; }
+  .stat-row { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <a href="/" class="brand">
+    <div class="brand-logo">
+      <div class="brand-logo-top">IN</div>
+      <div class="brand-logo-bottom">INTEL</div>
+    </div>
+    <div class="brand-text">
+      <div class="brand-name">Indy Intel</div>
+      <div class="brand-sub">Indianapolis · Real Estate Intelligence</div>
+    </div>
+  </a>
+  <div class="header-right">
+    <div class="live-pill"><div class="live-dot"></div> Live</div>
+    <div class="header-date" id="hdate"></div>
+    <button class="hamburger-btn" onclick="toggleSources()" aria-label="News Sources">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- Mobile sources drawer -->
+<div id="sources-overlay" class="sources-overlay" onclick="toggleSources()"></div>
+<div id="sources-drawer" class="sources-drawer">
+  <div class="sources-drawer-header">
+    <div class="col-title" style="padding:0;">News Sources</div>
+    <button onclick="toggleSources()" style="background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;">✕</button>
+  </div>
+  {% for url, name, domain in [
+    ("https://www.axios.com/local/indianapolis","Axios Indianapolis","axios.com"),
+    ("https://mirrorindy.org","Mirror Indy","mirrorindy.org"),
+    ("https://www.wrtv.com","WRTV","wrtv.com"),
+    ("https://www.wthr.com","WTHR NBC","wthr.com"),
+    ("https://www.fox59.com","FOX59","fox59.com"),
+    ("https://www.wfyi.org","WFYI Radio","wfyi.org"),
+    ("https://www.federalreserve.gov","Federal Reserve","federalreserve.gov"),
+    ("https://www.realtor.com/research","Realtor.com","realtor.com"),
+    ("https://www.zillow.com/research","Zillow","zillow.com"),
+    ("https://www.redfin.com/news","Redfin","redfin.com"),
+    ("https://www.bankrate.com","Bankrate","bankrate.com"),
+    ("https://mibor.com","MIBOR MLS","mibor.com")
+  ] %}
+  <a href="{{ url }}" target="_blank" class="src-item">
+    <img class="src-img" src="https://www.google.com/s2/favicons?domain={{ domain }}&sz=32" alt="" onerror="this.style.display='none'">
+    {{ name }}
+  </a>
+  {% endfor %}
+</div>
+
+<!-- TICKER -->
+{% set latest = [] %}
+{% if by_category %}
+  {% for cat, dg in by_category.items() %}
+    {% if cat == 'All Stories' %}
+      {% for dl, arts in dg.items() %}
+        {% for a in arts %}{% if latest|length < 12 %}{% set _ = latest.append(a) %}{% endif %}{% endfor %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{% if latest %}
+<div class="ticker">
+  <div class="ticker-badge"><div class="ticker-badge-dot"></div> Breaking</div>
+  <div class="ticker-track">
+    <div class="ticker-inner">
+      {% for a in latest %}
+      <a href="/article/{{ a.id }}" class="t-item">
+        <span class="t-dot {{ a.light }}"></span>
+        <span class="t-src">{{ a.source }}</span>
+        {{ a.title }}
+      </a>
+      {% endfor %}
+      {% for a in latest %}
+      <a href="/article/{{ a.id }}" class="t-item">
+        <span class="t-dot {{ a.light }}"></span>
+        <span class="t-src">{{ a.source }}</span>
+        {{ a.title }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- PAGE -->
+<div class="page">
+
+  <!-- LEFT: SOURCES -->
+  <div class="left-col">
+    <div class="col-title">News Sources</div>
+    {% for url, name, domain in [
+      ("https://www.axios.com/local/indianapolis","Axios Indianapolis","axios.com"),
+      ("https://mirrorindy.org","Mirror Indy","mirrorindy.org"),
+      ("https://www.wrtv.com","WRTV","wrtv.com"),
+      ("https://www.wthr.com","WTHR NBC","wthr.com"),
+      ("https://www.fox59.com","FOX59","fox59.com"),
+      ("https://www.wfyi.org","WFYI Radio","wfyi.org"),
+      ("https://www.federalreserve.gov","Federal Reserve","federalreserve.gov"),
+      ("https://www.realtor.com/research","Realtor.com","realtor.com"),
+      ("https://www.zillow.com/research","Zillow","zillow.com"),
+      ("https://www.redfin.com/news","Redfin","redfin.com"),
+      ("https://www.bankrate.com","Bankrate","bankrate.com"),
+      ("https://mibor.com","MIBOR MLS","mibor.com")
+    ] %}
+    <a href="{{ url }}" target="_blank" class="src-item">
+      <img class="src-img" src="https://www.google.com/s2/favicons?domain={{ domain }}&sz=32" alt="" onerror="this.style.display='none'">
+      {{ name }}<span class="src-arrow">↗</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- CENTER: GRID -->
+  <div class="center-col">
+    <div class="col-head">
+      <div class="col-head-title">Topics</div>
+      <div class="col-head-line"></div>
+    </div>
+
+    {% set cat_caps = {
+      'Fix & Flip':                 '#991b1b',
+      'Rental Market':              '#1e3a8a',
+      'Development & Construction': '#5b21b6',
+      'Jobs & Companies':           '#064e3b',
+      'Interest Rates & Fed':       '#78350f',
+      'Mortgages':                  '#164e63',
+      'Market Prices & Stats':      '#831843',
+      'Population & Growth':        '#365314',
+      'General':                    '#1e293b'
+    } %}
+
+    {% set all_cats = [
+      'Interest Rates & Fed',
+      'Development & Construction',
+      'Jobs & Companies',
+      'Population & Growth',
+      'Market Prices & Stats',
+      'General'
+    ] %}
+
+    <div class="cat-grid">
+      {% for cat in all_cats %}
+      {% set date_groups = by_category.get(cat, {}) %}
+      {% set total = namespace(n=0) %}
+      {% set red   = namespace(n=0) %}
+      {% set yel   = namespace(n=0) %}
+      {% for dl, arts in date_groups.items() %}
+        {% set total.n = total.n + arts|length %}
+        {% for a in arts %}
+          {% if a.light=='red' %}{% set red.n = red.n+1 %}{% endif %}
+          {% if a.light=='yellow' %}{% set yel.n = yel.n+1 %}{% endif %}
+        {% endfor %}
+      {% endfor %}
+      {% set slug = cat|replace(' ','_')|replace('&','and')|replace('/','_') %}
+      {% set cap  = cat_caps.get(cat,'#1e293b') %}
+
+      <a href="/category/{{ slug }}" class="cat-tile">
+        <div class="tile-cap" style="background:{{ cap }}">
+          <div class="tile-cap-name">{{ cat }}</div>
+          <div class="tile-cap-count">{{ total.n }}</div>
+        </div>
+        <div class="tile-body">
+          <div class="day-rows">
+            {% if date_groups %}
+              {% for dl, arts in date_groups.items() %}
+              <div class="day-row">
+                <span class="day-name">{{ dl }}</span>
+                <span class="day-count">{{ arts|length }} {{ 'article' if arts|length == 1 else 'articles' }}</span>
+                <span class="day-dots">
+                  {% for a in arts[:5] %}<span class="dd {{ a.light }}"></span>{% endfor %}
+                </span>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="day-row" style="color:#94a3b8;font-size:12px;">No articles yet</div>
+            {% endif %}
+          </div>
+          <div class="tile-foot">
+            <div class="tile-sigs">
+              {% if red.n > 0 %}<span class="sig red">{{ red.n }} urgent</span>{% endif %}
+              {% if yel.n > 0 %}<span class="sig yellow">{{ yel.n }} watch</span>{% endif %}
+            </div>
+            <span class="tile-cta">View all →</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+
+      <!-- Neighborhoods -->
+      <a href="/neighborhoods" class="cat-tile">
+        <div class="tile-cap" style="background:#1e3a8a">
+          <div class="tile-cap-name">Neighborhoods</div>
+          <div class="tile-cap-count">28</div>
+        </div>
+        <div class="tile-body">
+          <div class="day-rows" style="justify-content:center;">
+            <div style="font-size:13px;font-weight:500;color:#475569;line-height:1.9;padding-top:4px;">
+              Interactive crime map<br>Average home prices<br>Days on market<br>Investment ratings
+            </div>
+          </div>
+          <div class="tile-foot">
+            <div></div>
+            <span class="tile-cta">Explore →</span>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- RIGHT: HEAT MAP -->
+  <div class="right-col">
+    <div class="heat-wrap">
+      <div class="col-title" style="padding:6px 0 14px;">Market Heat</div>
+
+      <!-- GAUGE SVG — horizontal bar -->
+      <svg viewBox="0 0 240 85" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;margin-bottom:8px;">
+        <defs>
+          <linearGradient id="barGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#059669"/>
+            <stop offset="33%"  stop-color="#10b981"/>
+            <stop offset="55%"  stop-color="#d97706"/>
+            <stop offset="75%"  stop-color="#ef4444"/>
+            <stop offset="100%" stop-color="#b91c1c"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Score: 72 / 100 on one line, centered -->
+        <text x="120" y="28" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="32" fill="#0f1c2e" font-weight="800" letter-spacing="-1">72</text>
+        <text x="158" y="28" text-anchor="start" font-family="DM Sans,sans-serif" font-size="11" fill="#94a3b8" font-weight="600" dominant-baseline="auto">/ 100</text>
+
+        <!-- Bar -->
+        <rect x="20" y="40" width="200" height="12" rx="6" fill="url(#barGrad)"/>
+
+        <!-- Needle: x = 20 + 0.72*200 = 164 -->
+        <line x1="164" y1="36" x2="164" y2="56" stroke="#0f1c2e" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="164" cy="46" r="5" fill="#0f1c2e"/>
+        <circle cx="164" cy="46" r="2.5" fill="white"/>
+
+        <!-- Labels -->
+        <text x="20"  y="68" font-family="DM Sans,sans-serif" font-size="9" fill="#059669" font-weight="700">Cold</text>
+        <text x="120" y="68" font-family="DM Sans,sans-serif" font-size="9" fill="#d97706" font-weight="700" text-anchor="middle">Warm</text>
+        <text x="220" y="68" font-family="DM Sans,sans-serif" font-size="9" fill="#dc2626" font-weight="700" text-anchor="end">Hot</text>
+      </svg>
+
+      <div class="heat-badge">🔥 Hot Seller's Market</div>
+
+      <div class="stat-row"><span class="stat-label">30Y Mortgage Rate</span><span class="stat-val up">6.87% ↑</span></div>
+      <div class="stat-row"><span class="stat-label">Fed Rate</span><span class="stat-val">5.25%</span></div>
+      <div class="stat-row"><span class="stat-label">Median Price</span><span class="stat-val up">$265k ↑3.2%</span></div>
+      <div class="stat-row"><span class="stat-label">Days on Market</span><span class="stat-val dn">18 days ↓</span></div>
+      <div class="stat-row"><span class="stat-label">Supply</span><span class="stat-val">1.4 months</span></div>
+      <div class="stat-row"><span class="stat-label">List-to-Sale</span><span class="stat-val">98.4%</span></div>
+      <div class="heat-note">Supply &lt; 3 months = Seller's Market. DOM &lt; 30 = fast sales. High rates slightly cooling demand.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const d = new Date();
+document.getElementById('hdate').textContent = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+
+function toggleSources() {
+  document.getElementById('sources-drawer').classList.toggle('open');
+  document.getElementById('sources-overlay').classList.toggle('open');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+flask
+feedparser
+trafilatura
+anthropic
+requests
+python-dotenv

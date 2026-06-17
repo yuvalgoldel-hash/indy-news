@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Indy Intel">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<title>Neighborhoods — Indy Intel</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+.nbhd-page { display: grid; grid-template-columns: 380px 1fr; height: calc(100vh - 110px); overflow: hidden; }
+
+/* LEFT PANEL */
+.nbhd-panel {
+  background: var(--white);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.nbhd-panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.nbhd-panel-header h2 { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+.nbhd-panel-header p { font-size: 12px; color: var(--text-light); }
+.nbhd-list { overflow-y: auto; flex: 1; }
+
+.nbhd-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--bg);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nbhd-item:hover, .nbhd-item.active { background: #f0f4ff; }
+.nbhd-rank {
+  font-size: 11px;
+  font-weight: 800;
+  color: #9ca3af;
+  width: 20px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.nbhd-info { flex: 1; min-width: 0; }
+.nbhd-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.nbhd-zip { font-size: 11px; color: #9ca3af; }
+.nbhd-stats { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+.nbhd-stat { font-size: 11px; font-weight: 600; }
+.crime-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.crime-1, .crime-2 { background: #dcfce7; color: #166534; }
+.crime-3, .crime-4 { background: #fef9c3; color: #854d0e; }
+.crime-5, .crime-6 { background: #ffedd5; color: #9a3412; }
+.crime-7, .crime-8, .crime-9, .crime-10 { background: #fee2e2; color: #991b1b; }
+
+/* MAP */
+.nbhd-map { position: relative; }
+#map { width: 100%; height: 100%; }
+
+/* POPUP CARD (appears on hover over list item) */
+.map-tooltip {
+  background: white;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  min-width: 220px;
+  font-family: 'Heebo', sans-serif;
+}
+.map-tooltip h3 { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+.tooltip-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #f3f4f6; }
+.tooltip-row:last-child { border: none; }
+.tooltip-label { color: #6b7280; }
+.tooltip-val { font-weight: 700; }
+
+@media (max-width: 768px) {
+  .nbhd-page {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    height: calc(100vh - 110px);
+  }
+  /* Hide list, show only map */
+  .nbhd-panel { display: none; }
+  .nbhd-map { height: calc(100vh - 110px); }
+  #map { height: 100%; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-top">
+    <a href="/" class="logo">
+      <div class="logo-mark">🏠</div>
+      <div class="logo-text-wrap">
+        <span class="logo-name">Indy Intel</span>
+        <span class="logo-tagline">Real Estate Intelligence · Indianapolis</span>
+      </div>
+    </a>
+    <div class="header-right">
+      <a href="/" class="refresh-btn" style="text-decoration:none;">← Back to News</a>
+    </div>
+  </div>
+</header>
+
+<div class="nbhd-page">
+
+  <!-- LEFT: Neighborhood List -->
+  <div class="nbhd-panel">
+    <div class="nbhd-panel-header">
+      <h2>🏘️ Indianapolis Neighborhoods</h2>
+      <p>Sorted by crime rate (safest first) · Hover to see on map</p>
+    </div>
+    <div class="nbhd-list">
+      {% for n in neighborhoods %}
+      <div class="nbhd-item"
+           data-lat="{{ n.lat }}"
+           data-lng="{{ n.lng }}"
+           data-name="{{ n.name }}"
+           data-crime="{{ n.crime_index }}"
+           data-crime-label="{{ n.crime_label }}"
+           data-price="{{ n.avg_price }}"
+           data-dom="{{ n.dom }}"
+           data-zip="{{ n.zip }}"
+           data-notes="{{ n.notes }}"
+           data-flip="{{ n.flip_rating }}"
+           data-rental="{{ n.rental_rating }}"
+           onmouseenter="hoverNeighborhood(this)"
+           onclick="clickNeighborhood(this)">
+        <div class="nbhd-rank">{{ loop.index }}</div>
+        <div class="nbhd-info">
+          <div class="nbhd-name">{{ n.name }}</div>
+          <div class="nbhd-zip">ZIP {{ n.zip }}</div>
+          <div class="nbhd-stats">
+            <span class="nbhd-stat" style="color:#1a1a2e;">💰 ${{ "{:,}".format(n.avg_price) }}</span>
+            <span class="nbhd-stat" style="color:#6b7280;">📅 {{ n.dom }} days</span>
+          </div>
+        </div>
+        <div class="crime-badge crime-{{ n.crime_index }}">{{ n.crime_label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- RIGHT: Map -->
+  <div class="nbhd-map">
+    <div id="map"></div>
+  </div>
+
+</div>
+
+<script>
+// Init map centered on Indianapolis
+const map = L.map('map', { zoomControl: true }).setView([39.7684, -86.1581], 12);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap © CARTO',
+  maxZoom: 18
+}).addTo(map);
+
+// Neighborhood data from Python
+const neighborhoods = [
+  {% for n in neighborhoods %}
+  {
+    name: "{{ n.name }}",
+    lat: {{ n.lat }},
+    lng: {{ n.lng }},
+    crime: {{ n.crime_index }},
+    crimeLabel: "{{ n.crime_label }}",
+    price: {{ n.avg_price }},
+    dom: {{ n.dom }},
+    zip: "{{ n.zip }}",
+    notes: "{{ n.notes }}",
+    flip: "{{ n.flip_rating }}",
+    rental: "{{ n.rental_rating }}"
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+function crimeColor(index) {
+  if (index <= 2) return '#22c55e';
+  if (index <= 4) return '#eab308';
+  if (index <= 6) return '#f97316';
+  return '#ef4444';
+}
+
+function formatPrice(p) {
+  return '$' + (p >= 1000 ? (p/1000).toFixed(0) + 'k' : p);
+}
+
+// Create markers
+const markers = {};
+neighborhoods.forEach(n => {
+  const color = crimeColor(n.crime);
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="
+      background:${color};
+      width:14px;height:14px;
+      border-radius:50%;
+      border:2px solid white;
+      box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      transition: all 0.2s;
+    "></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
+  });
+
+  const marker = L.marker([n.lat, n.lng], { icon }).addTo(map);
+
+  marker.bindPopup(`
+    <div class="map-tooltip">
+      <h3>${n.name}</h3>
+      <div class="tooltip-row"><span class="tooltip-label">Crime Level</span><span class="tooltip-val" style="color:${color}">${n.crimeLabel}</span></div>
+      <div class="tooltip-row"><span class="tooltip-label">Avg Home Price</span><span class="tooltip-val">${formatPrice(n.price)}</span></div>
+      <div class="tooltip-row"><span class="tooltip-label">Days on Market</span><span class="tooltip-val">${n.dom} days</span></div>
+      <div class="tooltip-row"><span class="tooltip-label">Fix & Flip</span><span class="tooltip-val">${n.flip}</span></div>
+      <div class="tooltip-row"><span class="tooltip-label">Rental</span><span class="tooltip-val">${n.rental}</span></div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:8px;">${n.notes}</div>
+    </div>
+  `, { maxWidth: 260 });
+
+  markers[n.name] = marker;
+});
+
+let activeItem = null;
+
+function hoverNeighborhood(el) {
+  const lat = parseFloat(el.dataset.lat);
+  const lng = parseFloat(el.dataset.lng);
+  const name = el.dataset.name;
+
+  // Highlight list item
+  document.querySelectorAll('.nbhd-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+
+  // Fly to marker and open popup
+  map.flyTo([lat, lng], 14, { duration: 0.6 });
+  if (markers[name]) {
+    markers[name].openPopup();
+  }
+}
+
+function clickNeighborhood(el) {
+  hoverNeighborhood(el);
+}
+</script>
+</body>
+</html>

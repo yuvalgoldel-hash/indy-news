@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Indy Intel">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<title>{{ article.title[:60] }} — Indy Intel</title>
+<link rel="stylesheet" href="/static/brand.css?v=1">
+<link rel="stylesheet" href="/static/style.css?v=3">
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/" class="brand">
+    <div class="brand-logo">
+      <div class="brand-logo-top">IN</div>
+      <div class="brand-logo-bottom">INTEL</div>
+    </div>
+    <div class="brand-text">
+      <div class="brand-name">Indy Intel</div>
+      <div class="brand-sub">Indianapolis · Real Estate Intelligence</div>
+    </div>
+  </a>
+  <div class="header-right">
+    <a href="javascript:history.back()" class="back-link">← Back</a>
+  </div>
+</header>
+
+<div class="article-page-wrap">
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="/">Indy Intel</a>
+    <span class="breadcrumb-sep">›</span>
+    <span>{{ article.source }}</span>
+    <span class="breadcrumb-sep">›</span>
+    <span>{{ article.fetched_at[:10] }}</span>
+  </div>
+
+  <!-- Header -->
+  <div class="article-header">
+    <div class="article-badges">
+      {% if article.light == 'red' %}
+        <span class="light-chip red">🔴 Act Now</span>
+      {% elif article.light == 'yellow' %}
+        <span class="light-chip yellow">🟡 Watch This</span>
+      {% else %}
+        <span class="light-chip green">🟢 General Info</span>
+      {% endif %}
+      {% if article.relevance_score and article.relevance_score > 0 %}
+      <span class="score-chip">Relevance {{ article.relevance_score }}/10</span>
+      {% endif %}
+    </div>
+    <h1 class="article-h1">{{ article.title }}</h1>
+    <div class="article-meta-row">
+      <span class="source-tag">{{ article.source }}</span>
+      <span class="date-tag">{{ article.fetched_at[:10] }}</span>
+      {% if article.fetched_at|length > 10 %}
+      <span class="date-tag">🕐 {{ article.fetched_at[11:16] }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- AI Analysis Panel -->
+  {% if article.summary_he %}
+  <div class="analysis-panel {{ article.light }}">
+    <div class="analysis-header">
+      <span>🧠</span>
+      AI Analysis — Impact on Indianapolis Real Estate (Flip & Rental)
+    </div>
+    <div class="analysis-content">{{ article.summary_he }}</div>
+  </div>
+  {% else %}
+  <div class="analysis-panel green">
+    <div class="analysis-header">🧠 AI Analysis</div>
+    <div class="analysis-content" style="color:#9ca3af;font-style:italic;">
+      Analysis pending. Refresh the page in a moment.
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Article Text -->
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-text">Full Article</div>
+    <div class="divider-line"></div>
+  </div>
+
+  {% if article.full_text and article.full_text|length > 100 %}
+  <div class="article-body">
+    {% for para in article.full_text.split('\n') %}
+      {% if para.strip() %}
+      <p>{{ para.strip() }}</p>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:48px 20px;background:#f9fafb;border-radius:12px;">
+    <div style="font-size:40px;margin-bottom:12px;">📰</div>
+    <p style="color:#6b7280;font-size:15px;margin-bottom:20px;">Could not extract article text.<br>Click to read on the original site.</p>
+    <a href="{{ article.real_url or article.url }}" target="_blank" class="refresh-btn" style="text-decoration:none;display:inline-flex;">↗ Read Full Article</a>
+  </div>
+  {% endif %}
+
+  <div class="source-footer">
+    Source: <a href="{{ article.real_url or article.url }}" target="_blank">{{ article.source }}</a>
+  </div>
+
+</div>
+
+<!-- Mark as read button -->
+<div id="read-btn" class="read-fab {% if article.is_read %}read{% endif %}" onclick="toggleRead()">
+  {% if article.is_read %}
+  <span>✓</span> Read
+  {% else %}
+  <span>○</span> Mark as Read
+  {% endif %}
+</div>
+
+<!-- Floating tab — try proxy first, fallback to new tab -->
+<div class="site-tab" onclick="openSitePanel()">
+  <span>🌐</span>
+  <span>Read Original Site</span>
+</div>
+
+<!-- Side panel overlay -->
+<div id="site-overlay" class="site-overlay" onclick="closeSitePanel()"></div>
+
+<!-- Side panel — original site via proxy -->
+<div id="site-panel" class="site-panel">
+  <div class="site-panel-header">
+    <div class="site-panel-title">
+      <span>🌐</span>
+      <span>{{ article.source }}</span>
+    </div>
+    <div class="site-panel-actions">
+      <a href="{{ article.real_url or article.url }}" target="_blank" class="site-panel-newtab">↗ New Tab</a>
+      <button class="site-panel-close" onclick="closeSitePanel()">✕</button>
+    </div>
+  </div>
+  <div style="position:relative;flex:1;overflow:hidden;">
+    <div id="panel-loading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f9fafb;z-index:10;">
+      <div style="width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#f4a61d;border-radius:50%;animation:spin 0.75s linear infinite;"></div>
+      <p style="margin-top:14px;font-size:14px;color:#6b7280;">Loading article...</p>
+    </div>
+    <iframe
+      id="site-iframe"
+      src="about:blank"
+      frameborder="0"
+      style="width:100%;height:100%;border:none;"
+      onload="iframeReady()"
+    ></iframe>
+  </div>
+</div>
+
+<style>
+.site-tab {
+  position: fixed;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1a1a2e;
+  color: #f4a61d;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  padding: 20px 12px;
+  border-radius: 10px 0 0 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+  z-index: 1000;
+  transition: all 0.2s;
+  letter-spacing: 0.5px;
+}
+.site-tab:hover { background: #f4a61d; color: #1a1a2e; padding-right: 16px; }
+
+.site-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 1001;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  backdrop-filter: blur(2px);
+}
+.site-overlay.open { opacity: 1; pointer-events: all; }
+
+.site-panel {
+  position: fixed;
+  top: 0;
+  right: -72%;
+  width: 70%;
+  height: 100vh;
+  background: white;
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.25);
+  transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.site-panel.open { right: 0; }
+
+.site-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: #1a1a2e;
+  color: white;
+  flex-shrink: 0;
+}
+.site-panel-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+.site-panel-actions { display: flex; align-items: center; gap: 10px; }
+.site-panel-newtab {
+  color: #f4a61d;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border: 1px solid #f4a61d;
+  border-radius: 6px;
+}
+.site-panel-newtab:hover { background: #f4a61d; color: #1a1a2e; }
+.site-panel-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.site-panel-close:hover { color: white; background: rgba(255,255,255,0.1); }
+
+.reader-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 48px;
+  background: #fafaf8;
+}
+.reader-title {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: #111827;
+  margin-bottom: 16px;
+  font-family: Georgia, serif;
+}
+.reader-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #9ca3af;
+  font-weight: 600;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.reader-body {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 18px;
+  line-height: 1.9;
+  color: #1f2937;
+}
+.reader-body p {
+  margin-bottom: 20px;
+}
+</style>
+
+<style>
+.read-fab {
+  position: fixed;
+  bottom: 36px;
+  left: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--navy, #0f1c2e);
+  color: #94a3b8;
+  border: 2px solid #1e293b;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 12px 22px;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  transition: all 0.22s;
+  z-index: 998;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.2px;
+  user-select: none;
+}
+.read-fab:hover { background: #1e293b; color: #fff; transform: translateY(-2px); }
+.read-fab.read { background: #064e3b; color: #6ee7b7; border-color: #065f46; }
+.read-fab.read:hover { background: #065f46; }
+
+@media (max-width: 768px) {
+  /* Fix header to match category page */
+  .site-header {
+    background: var(--navy, #0f1c2e) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: auto !important;
+    padding: 10px 14px !important;
+  }
+  .brand {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+  .brand-name { font-size: 17px !important; }
+  .brand-sub { font-size: 8px !important; }
+
+  .article-page-wrap { padding: 16px 14px; max-width: 100%; }
+  .article-h1 { font-size: 20px; line-height: 1.4; }
+  .analysis-panel { padding: 14px; font-size: 13px; }
+  .article-body p { font-size: 15px; line-height: 1.7; }
+
+  /* Side panel — full screen on mobile */
+  .site-panel { width: 100%; right: -100%; }
+  .site-tab {
+    writing-mode: horizontal-tb;
+    top: auto;
+    bottom: 100px;
+    right: 0;
+    transform: none;
+    padding: 10px 14px;
+    border-radius: 10px 0 0 10px;
+    flex-direction: row;
+    font-size: 12px;
+  }
+  .read-fab { bottom: 20px; left: 16px; font-size: 12px; padding: 10px 18px; }
+}
+</style>
+
+<script>
+const ARTICLE_ID = {{ article.id }};
+let isRead = {{ 'true' if article.is_read else 'false' }};
+
+async function toggleRead() {
+  const btn = document.getElementById('read-btn');
+  const url = isRead ? `/api/mark-unread/${ARTICLE_ID}` : `/api/mark-read/${ARTICLE_ID}`;
+  await fetch(url, { method: 'POST' });
+  isRead = !isRead;
+  if (isRead) {
+    btn.classList.add('read');
+    btn.innerHTML = '<span>✓</span> Read';
+  } else {
+    btn.classList.remove('read');
+    btn.innerHTML = '<span>○</span> Mark as Read';
+  }
+}
+
+const REAL_URL = "{{ article.real_url or article.url }}";
+const PROXY_URL = "/proxy?url=" + encodeURIComponent(REAL_URL);
+let iframeLoaded = false;
+
+function openSitePanel() {
+  document.getElementById('site-panel').classList.add('open');
+  document.getElementById('site-overlay').classList.add('open');
+  if (!iframeLoaded) {
+    iframeLoaded = true;
+    document.getElementById('site-iframe').src = PROXY_URL;
+  }
+}
+
+function closeSitePanel() {
+  document.getElementById('site-panel').classList.remove('open');
+  document.getElementById('site-overlay').classList.remove('open');
+}
+
+function iframeReady() {
+  const iframe = document.getElementById('site-iframe');
+  try {
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    const bodyText = iframeDoc.body ? iframeDoc.body.innerText : '';
+    // If blocked (Access Denied / empty), open in new tab instead
+    if (bodyText.includes('Access Denied') || bodyText.includes('blocked') || bodyText.trim().length < 50) {
+      closeSitePanel();
+      window.open(REAL_URL, '_blank');
+      return;
+    }
+  } catch(e) {
+    // Cross-origin error = site loaded (not blocked by us)
+  }
+  document.getElementById('panel-loading').style.display = 'none';
+}
+</script>
+</body>
+</html>

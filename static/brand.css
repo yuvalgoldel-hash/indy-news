@@ -1,0 +1,126 @@
+/* ═══════════════════════════════════════════════
+   INDY INTEL — Brand Design System
+   Color: Navy (#0f1c2e) + Gold (#e8a020)
+   Font: DM Serif Display (headings) + DM Sans (body)
+═══════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Serif+Display&display=swap');
+
+:root {
+  --navy:   #0f1c2e;
+  --navy2:  #1a2d45;
+  --navy3:  #243c58;
+  --gold:   #e8a020;
+  --gold2:  #f5b840;
+  --white:  #ffffff;
+  --bg:     #f4f6f9;
+  --border: #e2e8f0;
+  --text:   #0f172a;
+  --muted:  #64748b;
+  --light:  #94a3b8;
+
+  --red:    #dc2626;
+  --yellow: #d97706;
+  --green:  #059669;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+
+/* ── SHARED HEADER ── */
+.site-header {
+  background: var(--navy);
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 36px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  border-bottom: 2px solid var(--gold);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+}
+.brand-logo {
+  width: 42px;
+  height: 42px;
+  background: var(--gold);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+}
+.brand-logo-top {
+  font-family: 'DM Serif Display', serif;
+  font-size: 13px;
+  color: var(--navy);
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.brand-logo-bottom {
+  font-size: 7px;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.brand-text { display: flex; flex-direction: column; }
+.brand-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  color: var(--white);
+  line-height: 1;
+  letter-spacing: -0.3px;
+}
+.brand-sub {
+  font-size: 10px;
+  color: var(--gold);
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 3px;
+  opacity: 0.8;
+}
+
+.header-right { display: flex; align-items: center; gap: 16px; }
+.live-pill {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 600; color: var(--light);
+  border: 1px solid var(--navy3); padding: 5px 12px; border-radius: 20px;
+}
+.live-dot { width: 7px; height: 7px; background: #22c55e; border-radius: 50%; animation: livepulse 2s infinite; }
+@keyframes livepulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.8)} }
+
+.header-date { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+.back-link {
+  display: flex; align-items: center; gap: 7px;
+  color: var(--light); text-decoration: none;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+  padding: 6px 14px; border-radius: 6px;
+  border: 1px solid var(--navy3);
+  transition: all 0.18s;
+}
+.back-link:hover { color: var(--gold); border-color: var(--gold); }
+
+@media (max-width: 768px) {
+  .site-header {
+    height: auto;
+    padding: 10px 14px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand-name { font-size: 17px; }
+  .brand-sub { font-size: 8px; }
+  .back-link { font-size: 11px; padding: 5px 10px; }
+}

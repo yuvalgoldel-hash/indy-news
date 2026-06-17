@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Indy Intel">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<title>{{ cat_name }} — Indy Intel</title>
+<link rel="stylesheet" href="/static/brand.css?v=1">
+<style>
+.cat-hero {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+  padding: 36px 48px 32px;
+  border-bottom: 2px solid var(--gold);
+}
+.hero-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2.5px; color: var(--gold); opacity: 0.8; margin-bottom: 10px; }
+.hero-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 40px;
+  color: #fff;
+  margin-bottom: 10px;
+  letter-spacing: -0.5px;
+}
+.hero-stats { display: flex; gap: 20px; align-items: center; }
+.hero-stat { font-size: 13px; color: #64748b; font-weight: 500; }
+.hero-stat span { color: var(--gold); font-weight: 700; }
+
+.content { max-width: 860px; margin: 0 auto; padding: 36px 40px 80px; }
+
+.date-block { margin-bottom: 6px; }
+.date-strip { display: flex; align-items: center; gap: 14px; margin: 28px 0 14px; }
+.date-accent { width: 4px; height: 20px; background: var(--gold); border-radius: 2px; flex-shrink: 0; }
+.date-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text); }
+.date-line { flex: 1; height: 1px; background: var(--border); }
+
+.a-list { display: flex; flex-direction: column; gap: 8px; }
+.a-card {
+  background: var(--white);
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+  border-right: 4px solid var(--border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s;
+}
+.a-card:hover { transform: translateX(-3px); box-shadow: 0 4px 16px rgba(15,28,46,0.1); border-right-color: var(--gold); }
+.a-card.red    { border-right-color: #ef4444; }
+.a-card.yellow { border-right-color: #f59e0b; }
+.a-card.green  { border-right-color: #10b981; }
+.a-sig { font-size: 20px; flex-shrink: 0; }
+.a-body { flex: 1; min-width: 0; }
+.a-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.a-src { font-size: 10px; font-weight: 800; color: var(--muted); background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }
+.a-score { font-size: 10px; font-weight: 800; background: var(--navy); color: var(--gold); padding: 2px 8px; border-radius: 4px; }
+.a-date { font-size: 11px; color: var(--light); }
+.a-title { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.45; }
+.a-arr { font-size: 20px; color: var(--border); flex-shrink: 0; }
+.a-card:hover .a-arr { color: var(--gold); }
+.a-card.is-read { opacity: 0.5; }
+.a-card.is-read .a-title { color: var(--muted); }
+.read-check {
+  font-size: 13px;
+  color: #6ee7b7;
+  background: #064e3b;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-weight: 800;
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/" class="brand">
+    <div class="brand-logo">
+      <div class="brand-logo-top">IN</div>
+      <div class="brand-logo-bottom">INTEL</div>
+    </div>
+    <div class="brand-text">
+      <div class="brand-name">Indy Intel</div>
+      <div class="brand-sub">Indianapolis · Real Estate Intelligence</div>
+    </div>
+  </a>
+  <div class="header-right">
+    <a href="/" class="back-link">← All Topics</a>
+  </div>
+</header>
+
+{% set total = namespace(n=0) %}
+{% set reds  = namespace(n=0) %}
+{% for dl, arts in date_groups.items() %}
+  {% set total.n = total.n + arts|length %}
+  {% for a in arts %}{% if a.light == 'red' %}{% set reds.n = reds.n+1 %}{% endif %}{% endfor %}
+{% endfor %}
+
+<div class="cat-hero">
+  <div class="hero-label">Indianapolis Real Estate Intelligence</div>
+  <div class="hero-title">{{ cat_name }}</div>
+  <div class="hero-stats">
+    <div class="hero-stat"><span>{{ total.n }}</span> articles</div>
+    {% if reds.n > 0 %}<div class="hero-stat">🔴 <span>{{ reds.n }}</span> high priority</div>{% endif %}
+    <div class="hero-stat">Updated <span>today</span></div>
+  </div>
+</div>
+
+<div class="content">
+  {% for date_label, arts in date_groups.items() %}
+  <div class="date-block">
+    <div class="date-strip">
+      <div class="date-accent"></div>
+      <div class="date-label">{{ date_label }}</div>
+      <div class="date-line"></div>
+    </div>
+    <div class="a-list">
+      {% for article in arts %}
+      <a href="/article/{{ article.id }}" class="a-card {{ article.light }} {% if article.is_read %}is-read{% endif %}">
+        <div class="a-sig">{% if article.light=='red' %}🔴{% elif article.light=='yellow' %}🟡{% else %}🟢{% endif %}</div>
+        <div class="a-body">
+          <div class="a-meta">
+            <span class="a-src">{{ article.source }}</span>
+            {% if article.relevance_score and article.relevance_score > 0 %}<span class="a-score">{{ article.relevance_score }}/10</span>{% endif %}
+            <span class="a-date">{{ article.fetched_at[11:16] if article.fetched_at|length > 10 else '' }}</span>
+          </div>
+          <div class="a-title">{{ article.title }}</div>
+        </div>
+        {% if article.is_read %}
+        <div class="read-check">✓</div>
+        {% else %}
+        <div class="a-arr">›</div>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+</body>
+</html>
